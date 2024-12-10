@@ -1,8 +1,8 @@
 /*
  * ascii.asm
  *
- *  Created: 09/12/2024 14:06:00
- *   Author: Natan Jurca
+ * Created: 09/12/2024 14:06:00
+ * Author: Natan Jurca
  */ 
 
 /// Helper things for ascii

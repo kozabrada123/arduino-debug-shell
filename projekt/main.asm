@@ -1,9 +1,9 @@
-;
-; projekt.asm
-;
-; Created: 09/12/2024 12:51:47
-; Author : Natan Jurca
-;
+/*
+ * projekt.asm
+ *
+ * Created: 09/12/2024 12:51:47
+ * Author : Natan Jurca
+ */
 
 // Interrupti
 .org 0x0000
@@ -78,10 +78,17 @@ _2:
 	// Backspace
 	cpi r16, backspace
 	brne _3
-	// Only moves the cursor back
-	call send_char
 	// Remove one from our string buffer
+	// Are we at the start?
+	cpi XL, LOW(0x101)
+	brne _5
+	cpi XH, HIGH(0x101)
+	breq _4
+_5:
 	call string_stack_pop
+	// Only moves the cursor back
+	ldi r16, backspace
+	call send_char
 	// Send space and backspace to clear it - dirty hack
 	ldi r16, space
 	call send_char
@@ -138,6 +145,13 @@ execute_command:
 	cpi r17, 1
 	breq clear_command
 
+	// Compare: is it dec_to_hex command?
+	ldi ZH, HIGH(dec_to_hex_command_string << 1)
+	ldi ZL, LOW(dec_to_hex_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	breq dec_to_hex_command
+
 	// No other command
 	// Check if it is an empty command
 	ld r16, Y
@@ -191,6 +205,38 @@ _clear_loop:
 	brne _clear_loop
 	rjmp command_return
 
+// Tests int parsing
+dec_to_hex_command:
+	push YH
+	push YL
+	// Start of 0x0101 + 8 for length of command + 1 for null bit; should be the starting location of the first argument 
+	ldi YH, HIGH(0x010A)
+	ldi YL, LOW(0x010A)
+	clr r17
+	call parse_string_Y_ram_as_u8
+	pop YL
+	pop YH
+	cpi r17, 1
+	breq _aaa
+	rjmp _bbb
+_aaa:
+	// Error
+	ldi r16, newline
+	call send_char
+	ldi ZH, HIGH(parse_failed_string<<1)
+	ldi ZL, LOW(parse_failed_string<<1)
+	call printstring
+	rjmp command_return
+
+_bbb:
+	// Ok
+	ldi r16, newline
+	call send_char
+	// Send the output
+	mov r16, r18
+	call send_hex
+	rjmp command_return
+
 // Prints a new line and the starting prompt
 print_newline_and_starting:
 	ldi r16, newline
@@ -211,7 +257,7 @@ debug:
 // Strings
 /// Printed when starting the connection
 greet_string:
-	.db "| 'Science isn't about why, it's about why not!' | Arduino Debug Shell indev |", 0
+	.db "| ", 0x22, "Science isn't about why, it's about why not!", 0x22, " | Arduino Debug Shell indev |", 0
 
 version_string:
 	.db "| Arduino Debug Shell | indev | last version change 10/12/24 |", 0
@@ -223,6 +269,10 @@ starting_string:
 /// Printed when submitting an invalid command
 invalid_command_string:
 	.db "| Invalid or incomplete command, please try again |", 0
+
+/// Printed when submitting an invalid number
+parse_failed_string:
+	.db "| Failed to parse integer, please try again |", 0
 
 hello_command_string:
 	.db "hello", 0
@@ -238,3 +288,6 @@ version_command_string:
 
 clear_command_string:
 	.db "clear", 0
+
+dec_to_hex_command_string:
+	.db "dectohex", 0
