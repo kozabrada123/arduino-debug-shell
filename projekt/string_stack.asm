@@ -71,3 +71,49 @@ _seq_true:
 	pop YL
 	pop YH
 	rjmp _set_r17_true_and_ret
+
+// Moves Y to the next null termination of a string in ram, starting at where Y is pointing currently
+//
+// If Y is currently pointing at a character, finds the end of that character's string
+// If Y is currently pointing at a null termination, does nothing
+find_next_string_end_Y_ram:
+	push r16
+	// Check if we are beginning at a null byte
+	ld r16, Y
+	cpi r16, 0
+	breq _nse_end
+
+_nse_loop:
+	// Fake preincremented load
+	ld r16, Y+
+	ld r16, Y
+	// Are we at a null byte?
+	cpi r16, 0
+	breq _nse_end
+	rjmp _nse_loop
+
+_nse_end:
+	pop r16
+	ret
+
+// Moves Y to the previous null termination of a string in ram, starting at where Y is pointing currently
+//
+// If Y is currently pointing at a character, finds the end of the previous string
+// If Y is currently pointing at a null termination, does nothing
+find_previous_string_end_Y_ram:
+	push r16
+	// Check if we are beginning at a null byte
+	ld r16, Y
+	cpi r16, 0
+	breq _nse_end
+
+_pse_loop:
+	ld r16, -Y
+	// Are we at a null byte?
+	cpi r16, 0
+	breq _nse_end
+	rjmp _nse_loop
+
+_pse_end:
+	pop r16
+	ret

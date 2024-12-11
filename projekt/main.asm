@@ -363,7 +363,7 @@ debug:
 // Strings
 /// Printed when starting the connection
 greet_string:
-	.db "| ", 0x22, "Science isn't about why, it's about why not!", 0x22, " | Arduino Debug Shell indev |", 0
+	.db "| ", 0x22, "Science isn't about why, it's about why not!", 0x22, " - Cave Johnson |", newline, "| Arduino Debug Shell indev |", 0
 
 version_string:
 	.db "| Arduino Debug Shell | indev | last version change 10/12/24 |", 0
@@ -385,7 +385,7 @@ u16_parse_failed_string:
 
 /// Help text
 help_string:
-	.db "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| parsehex [number] | Tests the hex string number parser", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", 0
+	.db newline, "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| parsehex [number] | Tests the hex string number parser", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", newline, 0
 
 // Strings for commands
 reset_command_string:
