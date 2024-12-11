@@ -76,6 +76,9 @@
     <Compile Include="main.asm">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="string_algorithms.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="string_stack.asm">
       <SubType>Code</SubType>
     </Compile>

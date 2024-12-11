@@ -14,6 +14,7 @@ RESET: rjmp setup
 .include "knjiznica.asm"
 .include "ascii.asm"
 .include "string_stack.asm"
+.include "string_algorithms.asm"
 
 setup:
 	call setupUART
@@ -118,41 +119,75 @@ execute_command:
 	ldi YH, HIGH(0x0101) // No idea why 0x0100 doesn't work, but this fixes it and it works perfectly now
 	ldi YL, LOW(0x0101)
 
-	// Compare: is it a hello command?
-	ldi ZH, HIGH(hello_command_string << 1)
-	ldi ZL, LOW(hello_command_string  << 1)
-	call string_Y_ram_equals_Z_rom
-	cpi r17, 1
-	breq hello_command
-
 	// Compare: is it a reset command?
 	ldi ZH, HIGH(reset_command_string << 1)
 	ldi ZL, LOW(reset_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	breq reset_command
+	// Note: these jumps are done this way so the
+	// jump to the command has a larger range
+	//
+	// If using breq, you have a range of +- 64
+	// If using rjmp, you have a range of +- 2k
+	// (You can also easily make it jmp)
+	brne _after_reset
+	rjmp reset_command
 
+_after_reset:
 	// Compare: is it a version command?
 	ldi ZH, HIGH(version_command_string << 1)
 	ldi ZL, LOW(version_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	breq version_command
+	brne _after_version
+	rjmp version_command
 
+_after_version:
+	// Compare: is it a help command?
+	ldi ZH, HIGH(help_command_string << 1)
+	ldi ZL, LOW(help_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _after_help
+	rjmp help_command
+
+_after_help:
 	// Compare: is it a clear command?
 	ldi ZH, HIGH(clear_command_string << 1)
 	ldi ZL, LOW(clear_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	breq clear_command
+	brne _after_clear
+	rjmp clear_command
 
-	// Compare: is it dec_to_hex command?
+_after_clear:
+	// Compare: is it dectohex command?
 	ldi ZH, HIGH(dec_to_hex_command_string << 1)
 	ldi ZL, LOW(dec_to_hex_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	breq dec_to_hex_command
+	brne _after_dec_to_hex
+	rjmp dec_to_hex_command
 
+_after_dec_to_hex:
+	// Compare: is it parsehex command?
+	ldi ZH, HIGH(parse_hex_command_string << 1)
+	ldi ZL, LOW(parse_hex_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _after_parse_hex
+	rjmp parse_hex_command
+
+_after_parse_hex:
+	// Compare: is it bintohex command?
+	ldi ZH, HIGH(bin_to_hex_command_string << 1)
+	ldi ZL, LOW(bin_to_hex_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _skip_command
+	rjmp bin_to_hex_command
+
+_skip_command:
 	// No other command
 	// Check if it is an empty command
 	ld r16, Y
@@ -174,15 +209,6 @@ command_return:
 	call print_newline_and_starting
 	ret
 
-// Just prints a message back
-hello_command:
-	ldi r16, newline
-	call send_char
-	ldi ZH, HIGH(hello_command_return_string << 1)
-	ldi ZL, LOW(hello_command_return_string  << 1)
-	call printstring
-	rjmp command_return
-
 // Calls the reset interrupt
 reset_command:
 	rjmp RESET
@@ -196,6 +222,15 @@ version_command:
 	call printstring
 	rjmp command_return
 
+// Prints the help text
+help_command:
+	ldi r16, newline
+	call send_char
+	ldi ZH, HIGH(help_string << 1)
+	ldi ZL, LOW(help_string  << 1)
+	call printstring
+	rjmp command_return
+
 // ""clears"" the screen
 clear_command:
 	ldi r17, 255
@@ -206,7 +241,7 @@ _clear_loop:
 	brne _clear_loop
 	rjmp command_return
 
-// Tests int parsing
+// Tests int parsing and converts a decimal number in hex
 dec_to_hex_command:
 	push YH
 	push YL
@@ -230,6 +265,74 @@ _dthc_error:
 	rjmp command_return
 
 _dthc_ok:
+	// Ok
+	ldi r16, newline
+	call send_char
+	// Send the output
+	mov r16, r19
+	call send_hex
+	mov r16, r18
+	call send_hex
+	rjmp command_return
+
+// Tests int parsing
+parse_hex_command:
+	push YH
+	push YL
+	// Start of 0x0101 + 8 for length of command + 1 for null bit; should be the starting location of the first argument 
+	ldi YH, HIGH(0x010A)
+	ldi YL, LOW(0x010A)
+	clr r17
+	call parse_hex_string_Y_ram_as_u16
+	pop YL
+	pop YH
+	cpi r17, 1
+	breq _hthc_error
+	rjmp _hthc_ok
+_hthc_error:
+	// Error
+	ldi r16, newline
+	call send_char
+	ldi ZH, HIGH(u16_parse_failed_string<<1)
+	ldi ZL, LOW(u16_parse_failed_string<<1)
+	call printstring
+	rjmp command_return
+
+_hthc_ok:
+	// Ok
+	ldi r16, newline
+	call send_char
+	// Send the output
+	mov r16, r19
+	call send_hex
+	mov r16, r18
+	call send_hex
+	rjmp command_return
+
+// Tests int parsing and turns a binary number into a hex one
+bin_to_hex_command:
+	push YH
+	push YL
+	// Start of 0x0101 + 8 for length of command + 1 for null bit; should be the starting location of the first argument 
+	ldi YH, HIGH(0x010A)
+	ldi YL, LOW(0x010A)
+	clr r17
+	call parse_bin_string_Y_ram_as_u16
+	pop YL
+	pop YH
+	cpi r17, 1
+	breq _bthc_error
+	rjmp _bthc_ok
+_bthc_error:
+	// Error
+	ldi r16, newline
+	call send_char
+	ldi ZH, HIGH(u16_parse_failed_string<<1)
+	ldi ZL, LOW(u16_parse_failed_string<<1)
+	call printstring
+	rjmp command_return
+
+_bthc_ok:
 	// Ok
 	ldi r16, newline
 	call send_char
@@ -275,25 +378,33 @@ invalid_command_string:
 
 /// Printed when submitting an invalid number
 u8_parse_failed_string:
-	.db "| Failed to parse integer, please try again (0 - 255) |", 0
+	.db "| Failed to parse integer, please try again (range: 0 - 255) |", 0
 
 u16_parse_failed_string:
-	.db "| Failed to parse integer, please try again (0 - 65535) |", 0
+	.db "| Failed to parse integer, please try again (range: 0 - 65535) |", 0
 
-hello_command_string:
-	.db "hello", 0
+/// Help text
+help_string:
+	.db "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| parsehex [number] | Tests the hex string number parser", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", 0
 
-hello_command_return_string:
-	.db "hi, human!", 0
-
+// Strings for commands
 reset_command_string:
 	.db "reset", 0
 
 version_command_string:
 	.db "version", 0
 
+help_command_string:
+	.db "help", 0
+
 clear_command_string:
 	.db "clear", 0
 
 dec_to_hex_command_string:
 	.db "dectohex", 0
+
+parse_hex_command_string:
+	.db "parsehex", 0
+
+bin_to_hex_command_string:
+	.db "bintohex", 0

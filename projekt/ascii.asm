@@ -50,6 +50,15 @@ is_r16_number:
 	brlo _set_r17_true_and_ret
 	rjmp _set_r17_false_and_ret
 
+/// Returns (in r17) whether r16 is between a and f
+is_r16_lowercase_hex_letter:
+	cpi r16, lower_a
+	brlo _set_r17_false_and_ret
+	cpi r16, 0x66 // Lower f
+	breq _set_r17_true_and_ret
+	brlo _set_r17_true_and_ret
+	rjmp _set_r17_false_and_ret
+
 /// Returns (in r17) whether r16 is between 0 and 9, A and Z or a and z
 is_r16_alphanumeric:
 	call is_r16_uppercase_letter
@@ -62,6 +71,24 @@ is_r16_alphanumeric:
 	cpi r17, 1
 	breq _set_r17_true_and_ret
 	rjmp _set_r17_false_and_ret
+
+/// Returns (in r17) whether r16 is between 0 and 9, or a and f
+is_r16_lowercase_hex:
+	call is_r16_lowercase_hex_letter
+	cpi r17, 1
+	breq _set_r17_true_and_ret
+	call is_r16_number
+	cpi r17, 1
+	breq _set_r17_true_and_ret
+	rjmp _set_r17_false_and_ret
+
+/// Returns (in r17) whether r16 is a binary digit (0 or 1)
+is_r16_binary_digit:
+	cpi r16, zero
+	breq _set_r17_true_and_ret
+	cpi r16, zero + 1
+	brne _set_r17_false_and_ret
+	rjmp _set_r17_true_and_ret
 
 /// Turns an ascii character in r16 into lowercase
 make_r16_lowercase:
