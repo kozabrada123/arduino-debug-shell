@@ -70,6 +70,9 @@
     <Compile Include="ascii.asm">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="commands.asm">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="knjiznica.asm">
       <SubType>Code</SubType>
     </Compile>
