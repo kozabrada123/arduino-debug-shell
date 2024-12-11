@@ -214,7 +214,7 @@ dec_to_hex_command:
 	ldi YH, HIGH(0x010A)
 	ldi YL, LOW(0x010A)
 	clr r17
-	call parse_string_Y_ram_as_u8
+	call parse_string_Y_ram_as_u16
 	pop YL
 	pop YH
 	cpi r17, 1
@@ -224,8 +224,8 @@ _dthc_error:
 	// Error
 	ldi r16, newline
 	call send_char
-	ldi ZH, HIGH(u8_parse_failed_string<<1)
-	ldi ZL, LOW(u8_parse_failed_string<<1)
+	ldi ZH, HIGH(u16_parse_failed_string<<1)
+	ldi ZL, LOW(u16_parse_failed_string<<1)
 	call printstring
 	rjmp command_return
 
@@ -234,6 +234,8 @@ _dthc_ok:
 	ldi r16, newline
 	call send_char
 	// Send the output
+	mov r16, r19
+	call send_hex
 	mov r16, r18
 	call send_hex
 	rjmp command_return

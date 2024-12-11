@@ -160,6 +160,10 @@ _parse_u8_err_return:
 	ldi r17, 1
 	ret
 
+// Relative branch out of reach....
+_parse_u16_err_return_2:
+	jmp _parse_u16_err_return
+
 // Parses the string in RAM, starting at where Y is pointing as a 16-bit number into r19 - r18.
 // In the event of a failure, r17 will have a non-zero (1) value
 //
@@ -171,14 +175,18 @@ parse_string_Y_ram_as_u16:
 	push r20 // r20 will be our counter for which position we are from the back
 	push r21 // temp value
 	push r22
+	push r23 // r24 - r23 is a temporary 16 bit value used in multiplication
+	push r24
 	ldi r19, 0
 	ldi r20, 0
 	ldi r21, 0
 	ldi r22, 0
+	ldi r23, 0
+	ldi r24, 0
 	// Check for non empty input string
 	ld r16, Y
 	cpi r16, 0
-	breq _parse_u16_err_return
+	breq _parse_u16_err_return_2
 
 // First part of the loop: find the end and check that it is just numbers
 _parse_u16_loop_1:
@@ -216,18 +224,28 @@ _parse_u16_loop_2:
 	mov r21, r20
 	ldi r22, 10
 
-	// Move r16 into r1 - r0, to have a mul loop
-	mov r0, r16
+	// Move r16 into r24 - r23, to have a mul loop
+	mov r23, r16
 	clr r16
+	clr r24 // Clear the top of the temp u16
 
 _inner_loop_parse_u16_loop_2:
-	mul r0, r22
-	// TODO -- kaj ce so spodnji 0 in zgornji nekej? poglej si test 2999 vs test 3000
+	// Multiply our number by 10 -- this is all this next code does
+	// Mul lower and save into r16
+	mul r23, r22
+	mov r23, r0
+	mov r16, r1
+
+	// Mul higher and add what we saved into r16
+	mul r24, r22
+	mov r24, r0
+	add r24, r16
+
 	dec r21
 	brne _inner_loop_parse_u16_loop_2
-	// Add the result of r1 - r0 to r19 - r18
-	add r18, r0
-	adc r19, r1
+	// Add the result of r24 - r23 to r19 - r18
+	add r18, r23
+	adc r19, r24
 	rjmp _after_add_u16
 
 _skip_mult_u16:
@@ -235,7 +253,7 @@ _skip_mult_u16:
 	add r18, r16
 	// Note: we know r20 is 0, we checked before
 	adc r19, r20
-	rjmp _after_add
+	rjmp _after_add_u16
 
 _after_add_u16:
 	// Did we get a carry? error
@@ -245,6 +263,8 @@ _after_add_u16:
 	rjmp _parse_u16_loop_2
 
 _parse_u16_ok_return:
+	pop r24
+	pop r23
 	pop r22
 	pop r21
 	pop r20
@@ -254,6 +274,8 @@ _parse_u16_ok_return:
 	ret
 
 _parse_u16_err_return:
+	pop r24
+	pop r23
 	pop r22
 	pop r21
 	pop r20
