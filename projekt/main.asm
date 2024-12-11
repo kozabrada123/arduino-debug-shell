@@ -57,34 +57,35 @@ main:
 evaluate_character:
 	// null character
 	cpi r16, 0
-	breq _4
+	breq _ec_ret
 
 	// Enter
 	cpi r16, enter
-	brne _1
+	brne _ec_space
 	call execute_command
 	ret
-_1:
+_ec_space:
 	// Space
 	cpi r16, space
-	brne _2
+	brne _ec_backspace
 	// Send space back
 	call send_char
 	// Add a string end to the string stack, so we know there is a break for arguments
 	clr r16
 	call string_stack_push
 	ret
-_2:
+_ec_backspace:
 	// Backspace
 	cpi r16, backspace
-	brne _3
+	brne _ec_alphanumeric
 	// Remove one from our string buffer
 	// Are we at the start?
 	cpi XL, LOW(0x101)
-	brne _5
+	brne _ec_backspace_2
 	cpi XH, HIGH(0x101)
-	breq _4
-_5:
+	breq _ec_ret
+
+_ec_backspace_2:
 	call string_stack_pop
 	// Only moves the cursor back
 	ldi r16, backspace
@@ -95,15 +96,15 @@ _5:
 	ldi r16, backspace
 	call send_char
 	ret
-_3:
+_ec_alphanumeric:
 	call is_r16_alphanumeric
 	cpi r17, 0
-	breq _4
+	breq _ec_ret
 	call make_r16_lowercase
 	call string_stack_push
 	call send_char
 	ret
-_4:
+_ec_ret:
 	ret
 
 // Evaluates / executes the current command
@@ -217,18 +218,18 @@ dec_to_hex_command:
 	pop YL
 	pop YH
 	cpi r17, 1
-	breq _aaa
-	rjmp _bbb
-_aaa:
+	breq _dthc_error
+	rjmp _dthc_ok
+_dthc_error:
 	// Error
 	ldi r16, newline
 	call send_char
-	ldi ZH, HIGH(parse_failed_string<<1)
-	ldi ZL, LOW(parse_failed_string<<1)
+	ldi ZH, HIGH(u8_parse_failed_string<<1)
+	ldi ZL, LOW(u8_parse_failed_string<<1)
 	call printstring
 	rjmp command_return
 
-_bbb:
+_dthc_ok:
 	// Ok
 	ldi r16, newline
 	call send_char
@@ -271,8 +272,11 @@ invalid_command_string:
 	.db "| Invalid or incomplete command, please try again |", 0
 
 /// Printed when submitting an invalid number
-parse_failed_string:
-	.db "| Failed to parse integer, please try again |", 0
+u8_parse_failed_string:
+	.db "| Failed to parse integer, please try again (0 - 255) |", 0
+
+u16_parse_failed_string:
+	.db "| Failed to parse integer, please try again (0 - 65535) |", 0
 
 hello_command_string:
 	.db "hello", 0

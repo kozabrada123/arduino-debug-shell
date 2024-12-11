@@ -93,14 +93,14 @@ _parse_u8_loop_1:
 	ld r16, Y+ 
 	// Check for a zero value, an end of the string
 	cpi r16, 0
-	brne _loop1_continue
+	brne _parse_u8_loop_1_continue
 
 	// This loop has done its job
 	// However, we need to decrease Y once, for the next loop
 	ld r16, -Y
 	breq _parse_u8_loop_2
 
-_loop1_continue:
+_parse_u8_loop_1_continue:
 	// Check for numeric value
 	call is_r16_number
 	cpi r17, 1
@@ -116,8 +116,9 @@ _parse_u8_loop_2:
 	// Not zero, ascii magic to get the real value
 	andi r16, 0x0F
 
+	// Are we at 10^0?
 	cpi r19, 0
-	breq _skip_mult
+	breq _parse_u8_skip_mult
 
 	// Mul r16 with 10 to the power of the position value
 	mov r20, r19
@@ -131,7 +132,7 @@ _inner_loop_parse_u8_loop_2:
 	dec r20
 	brne _inner_loop_parse_u8_loop_2
 
-_skip_mult:
+_parse_u8_skip_mult:
 	// Add to r18
 	add r18, r16
 
@@ -184,14 +185,14 @@ _parse_u16_loop_1:
 	ld r16, Y+ 
 	// Check for a zero value, an end of the string
 	cpi r16, 0
-	brne _loop161_continue
+	brne _loop_u16_1_continue
 
 	// This loop has done its job
 	// However, we need to decrease Y once, for the next loop
 	ld r16, -Y
 	breq _parse_u16_loop_2
 
-_loop161_continue:
+_loop_u16_1_continue:
 	// Check for numeric value
 	call is_r16_number
 	cpi r17, 1
@@ -207,8 +208,9 @@ _parse_u16_loop_2:
 	// Not zero, ascii magic to get the real value
 	andi r16, 0x0F
 
+	// Are we at 10^0?
 	cpi r20, 0
-	breq _skip_mult_16
+	breq _skip_mult_u16
 
 	// Mul r16 with 10 to the power of the position value
 	mov r21, r20
@@ -226,16 +228,16 @@ _inner_loop_parse_u16_loop_2:
 	// Add the result of r1 - r0 to r19 - r18
 	add r18, r0
 	adc r19, r1
-	rjmp _after_add
+	rjmp _after_add_u16
 
-_skip_mult_16:
+_skip_mult_u16:
 	// Add to r19 - r18
 	add r18, r16
 	// Note: we know r20 is 0, we checked before
 	adc r19, r20
 	rjmp _after_add
 
-_after_add:
+_after_add_u16:
 	// Did we get a carry? error
 	brcs _parse_u16_err_return
 
