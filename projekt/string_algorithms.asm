@@ -8,6 +8,35 @@
 // Contains home cooked string algorithms
 // This was probably the hardest part of the project to write
 
+// Sends the value in r16 in binary to serial
+//
+// Similar to send_hex
+send_bin:
+	mov r17, r16
+	ldi r18, 8
+_loop_send_bin:
+	// Shift and check carry
+	lsl r17
+	brcs _send_bin_send_1
+	rjmp _send_bin_send_0
+	
+_send_bin_send_0:
+	ldi r16, zero
+	call send_char
+	rjmp _send_bin_after_send
+
+_send_bin_send_1:
+	ldi r16, zero+1
+	call send_char
+
+_send_bin_after_send:
+	dec r18
+	breq _send_bin_end
+	rjmp _loop_send_bin
+
+_send_bin_end:
+	ret
+
 // Parses the string in RAM, starting at where Y is pointing as an 8-bit number into r18.
 // In the event of a failure, r17 will have a non-zero (1) value
 //

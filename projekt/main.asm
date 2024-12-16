@@ -1,5 +1,5 @@
 /*
- * projekt.asm
+ * main.asm
  *
  * Created: 09/12/2024 12:51:47
  * Author : Natan Jurca
@@ -8,7 +8,7 @@
 // Interrupti
 .org 0x0000
 RESET: rjmp setup
-.org 0x0033
+.org 0x0034
 
 // Knjižnica, da ni treba rocno implementirati serijca
 .include "knjiznica.asm"
@@ -173,22 +173,40 @@ _after_clear:
 	rjmp dec_to_hex_command
 
 _after_dec_to_hex:
-	// Compare: is it parsehex command?
-	ldi ZH, HIGH(parse_hex_command_string << 1)
-	ldi ZL, LOW(parse_hex_command_string  << 1)
-	call string_Y_ram_equals_Z_rom
-	cpi r17, 1
-	brne _after_parse_hex
-	rjmp parse_hex_command
-
-_after_parse_hex:
 	// Compare: is it bintohex command?
 	ldi ZH, HIGH(bin_to_hex_command_string << 1)
 	ldi ZL, LOW(bin_to_hex_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	brne _skip_command
+	brne _after_bin_to_hex
 	rjmp bin_to_hex_command
+
+_after_bin_to_hex:
+	// Compare: is it hextobin command?
+	ldi ZH, HIGH(hex_to_bin_command_string << 1)
+	ldi ZL, LOW(hex_to_bin_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _after_hex_to_bin
+	rjmp hex_to_bin_command
+
+_after_hex_to_bin:
+	// Compare: is it in command?
+	ldi ZH, HIGH(in_command_string << 1)
+	ldi ZL, LOW(in_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _after_in
+	rjmp in_command
+
+_after_in:
+	// Compare: is it out command?
+	ldi ZH, HIGH(out_command_string << 1)
+	ldi ZL, LOW(out_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _skip_command
+	rjmp out_command
 
 _skip_command:
 	// No other command
@@ -254,7 +272,7 @@ u16_parse_failed_string:
 
 /// Help text
 help_string:
-	.db newline, "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| parsehex [number] | Tests the hex string number parser", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", newline, 0
+	.db newline, "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| hextobin [number] | Converts a hexadecimal number into a binary one", newline, "| in [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] | Prints the hex value of port, pin or ddr registers", newline, "| out [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] [hex value: 00 to ff] | Sets the hex value of port, pin or ddr registers", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", newline, 0
 
 // Strings for commands
 reset_command_string:
@@ -277,3 +295,24 @@ parse_hex_command_string:
 
 bin_to_hex_command_string:
 	.db "bintohex", 0
+
+hex_to_bin_command_string:
+	.db "hextobin", 0
+
+in_command_string:
+	.db "in", 0
+
+out_command_string:
+	.db "out", 0
+
+port_string:
+	.db "port", 0
+
+ddr_string:
+	.db "ddr", 0
+
+pin_string:
+	.db "pin", 0
+
+invalid_port_pin_ddr_string:
+	.db "| Invalid input, expected port(b/c/d), pin(b/c/d) or ddr(b/c/d) |", 0
