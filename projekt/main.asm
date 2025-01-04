@@ -200,13 +200,31 @@ _after_hex_to_bin:
 	rjmp in_command
 
 _after_in:
+	// Compare: is it inbit command?
+	ldi ZH, HIGH(inbit_command_string << 1)
+	ldi ZL, LOW(inbit_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _after_inbit
+	rjmp inbit_command
+
+_after_inbit:
 	// Compare: is it out command?
 	ldi ZH, HIGH(out_command_string << 1)
 	ldi ZL, LOW(out_command_string  << 1)
 	call string_Y_ram_equals_Z_rom
 	cpi r17, 1
-	brne _skip_command
+	brne _after_out
 	rjmp out_command
+
+_after_out:
+	// Compare: is it outbit command?
+	ldi ZH, HIGH(outbit_command_string << 1)
+	ldi ZL, LOW(outbit_command_string  << 1)
+	call string_Y_ram_equals_Z_rom
+	cpi r17, 1
+	brne _skip_command
+	rjmp outbit_command
 
 _skip_command:
 	// No other command
@@ -250,10 +268,10 @@ debug:
 // Strings
 /// Printed when starting the connection
 greet_string:
-	.db "| ", 0x22, "Science isn't about why, it's about why not!", 0x22, " - Cave Johnson |", newline, "| Arduino Debug Shell indev |", 0
+	.db "| ", 0x22, "Science isn't about why, it's about why not!", 0x22, " - Cave Johnson |", newline, "| Arduino Debug Shell v1.0.0 |", 0
 
 version_string:
-	.db "| Arduino Debug Shell | indev | last version change 10/12/24 |", 0
+	.db "| Arduino Debug Shell | v1.0.0 | last version change 04/01/25 |", 0
 
 /// Printed after each command, on each new line
 starting_string:
@@ -270,9 +288,17 @@ u8_parse_failed_string:
 u16_parse_failed_string:
 	.db "| Failed to parse integer, please try again (range: 0 - 65535) |", 0
 
+/// Printed when we wanted 0 / 1 but received a different number
+not_bool_string:
+	.db "| Expected boolean (0 or 1), please try again |", 0
+
+/// Printed when we wanted 0 - 7 but received a different number
+not_0_to_7_string:
+	.db "| Expected bit (0 - 7), please try again |", 0
+
 /// Help text
 help_string:
-	.db newline, "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| hextobin [number] | Converts a hexadecimal number into a binary one", newline, "| in [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] | Prints the hex value of port, pin or ddr registers", newline, "| out [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] [hex value: 00 to ff] | Sets the hex value of port, pin or ddr registers", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", newline, 0
+	.db newline, "Commands:", newline, "| help | Prints this text", newline, "| reset | Acts like the reset interrupt", newline, "| version | Prints version information", newline, "| clear | Clears a messy screen", newline, "| dectohex [number] | Converts a decimal number into hexadecimal", newline, "| bintohex [number] | Converts a binary number into hexadecimal", newline, "| hextobin [number] | Converts a hexadecimal number into a binary one", newline, "| in [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] | Prints the hex value of port, pin or ddr registers", newline, "| out [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] [hex value: 00 to ff] | Sets the hex value of port, pin or ddr registers", newline, "| inbit [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] [(bit) 0 to 7] | Reads a bit in the port, pin or ddr registers", newline, "| outbit [port(b/c/d) / pin(b/c/d) / ddr(b/c/d)] [(bit) 0 to 7] [0 or 1] | Sets a bit in the port, pin or ddr registers", newline, newline, "If you encounter a bug or need help, don't hesitate to contact me at 192.168.4.1 on Discord", newline, 0
 
 // Strings for commands
 reset_command_string:
@@ -304,6 +330,12 @@ in_command_string:
 
 out_command_string:
 	.db "out", 0
+
+inbit_command_string:
+	.db "inbit", 0
+
+outbit_command_string:
+	.db "outbit", 0
 
 port_string:
 	.db "port", 0
